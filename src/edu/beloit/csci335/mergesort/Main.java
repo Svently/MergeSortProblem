@@ -7,8 +7,9 @@ import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
-    static final int ARRAY_LENGTH = 1000000;
+    static final int ARRAY_LENGTH = 5000000;
     static final long ARRAY_MAX_VALUE = 100000000;
+    static final long INSERTION_BREAK_POINT = 64;
     static long[] myArray;
     public static void main(String[] args) {
         myArray = new long[ARRAY_LENGTH];
@@ -48,23 +49,30 @@ public class Main {
     }
 
     private static long[] sortArrayInSingleProcess(long[] array) {
-        if (array.length == 0) {
-            return new long[] {};
-        }
-        if (array.length == 1) {
-            return new long[] {array[0]};
-        }
-
-        if (array.length == 2) {
-            if (array[0] >= array[1]) {
-                return new long[] {array[1], array[0]};
-            } else {
-                return new long[] {array[0], array[1]};
-            }
+        if (array.length <= INSERTION_BREAK_POINT) {
+            return computeDirectly(array);
         }
 
         var split = array.length / 2;
         return combineArrays(sortArrayInSingleProcess(Arrays.copyOfRange(array, 0, split)), sortArrayInSingleProcess(Arrays.copyOfRange(array, split, array.length)));
+    }
+
+    static long[] computeDirectly(long[] arr) {
+        long n = arr.length;
+        for (int i = 1; i < n; ++i) {
+            long key = arr[i];
+            int j = i - 1;
+
+            /* Move elements of arr[0..i-1], that are
+               greater than key, to one position ahead
+               of their current position */
+            while (j >= 0 && arr[j] > key) {
+                arr[j + 1] = arr[j];
+                j = j - 1;
+            }
+            arr[j + 1] = key;
+        }
+        return arr;
     }
 
     private static long[] combineArrays(long[] a, long[] b) {
