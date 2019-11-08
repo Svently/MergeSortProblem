@@ -1,10 +1,12 @@
 package edu.beloit.csci335.mergesort;
 
 import java.util.Arrays;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
-    static final int ARRAY_LENGTH = 10000;
+    static final int ARRAY_LENGTH = 17;
     static final long ARRAY_MAX_VALUE = 100000000;
     static long[] myArray;
     public static void main(String[] args) {
@@ -17,16 +19,17 @@ public class Main {
 	    var tBeforeSort = System.nanoTime();
 	    var sortedArray = sortArrayInSingleProcess(myArray);
 	    var tAfterSort = System.nanoTime();
-
+	    
+	    print(myArray);
+	    doMergeSort();
+	    print(myArray);
 	    System.out.println("After sorting for " + (tAfterSort - tBeforeSort) + " nanoseconds, is the array sorted?: " + isSorted(sortedArray));
     }
-
-    private static void printArray(long[] array) {
-        System.out.print("[");
-        for (long element : array) {
-            System.out.print("" + element + ", ");
-        }
-        System.out.println("]");
+    
+    public static void doMergeSort() {
+    	MergeSort mainTask=new MergeSort(myArray,0, myArray.length);
+    	ForkJoinPool pool = new ForkJoinPool();
+        pool.invoke(mainTask);
     }
 
     private static boolean isSorted(long[] array) {
@@ -85,4 +88,56 @@ public class Main {
         }
         return target;
     }
+    
+    private static void print(long[] array) {
+    	for(int i=0;i<array.length;i++) {
+    		System.out.print(array[i]+",");
+    	}
+    	System.out.println();
+    }
+}
+
+
+class MergeSort extends RecursiveAction{
+	
+	long[] arr;
+	int start;
+	int end;
+	
+	public MergeSort(long[] array,int start, int end) {
+		this.arr=array;
+		this.start=start;
+		this.end=end;
+	}
+
+	@Override
+	protected void compute() {
+		if(end-start<=20) {
+			computeDirectly();
+		}else {
+			int middle = (end + start) / 2;
+			
+			MergeSort subMerge1=new MergeSort(arr,start,middle);
+			MergeSort subMerge2=new MergeSort(arr,middle,start);
+			
+			invokeAll(subMerge1,subMerge2);
+		}
+	}
+	
+	protected void computeDirectly() {
+		long n = arr.length; 
+        for (int i = 1; i < n; ++i) { 
+            long key = arr[i]; 
+            int j = i - 1; 
+  
+            /* Move elements of arr[0..i-1], that are 
+               greater than key, to one position ahead 
+               of their current position */
+            while (j >= 0 && arr[j] > key) { 
+                arr[j + 1] = arr[j]; 
+                j = j - 1; 
+            } 
+            arr[j + 1] = key; 
+        } 
+	}
 }
