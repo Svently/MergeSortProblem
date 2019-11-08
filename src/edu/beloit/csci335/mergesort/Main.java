@@ -1,64 +1,89 @@
 package edu.beloit.csci335.mergesort;
-
 import java.util.Arrays;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RecursiveTask;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Main {
-    static final int ARRAY_LENGTH = 10000;
+    static final int ARRAY_LENGTH = 17;
+    static final int ARRAY_LENGTH = 1000000;
     static final long ARRAY_MAX_VALUE = 100000000;
     static long[] myArray;
-    public static void main(String[] args) {
-        myArray = new long[ARRAY_LENGTH];
-	    for (int i = 0; i < ARRAY_LENGTH; i++) {
-            myArray[i] = ThreadLocalRandom.current().nextLong(ARRAY_MAX_VALUE);
-        }
-	    System.out.println("Before sorting, is the array sorted?: " + isSorted(myArray));
-
+public static void main(String[] args) {
 	    var tBeforeSort = System.nanoTime();
 	    var sortedArray = sortArrayInSingleProcess(myArray);
 	    var tAfterSort = System.nanoTime();
 
+	    print(myArray);
+	    doMergeSort();
+	    print(myArray);
 	    System.out.println("After sorting for " + (tAfterSort - tBeforeSort) + " nanoseconds, is the array sorted?: " + isSorted(sortedArray));
+        System.out.println("After sorting for " + (tAfterSort - tBeforeSort) + " nanoseconds, is the array sorted?: " + isSorted(sortedArray));
+
+
+        var tBeforeFJSort = System.nanoTime();
+	    var fjSortedArray = doMergeSort(myArray);
+	    var tAfterFJSort = System.nanoTime();
+        System.out.println("After sorting for " + (tAfterFJSort - tBeforeFJSort) + " nanoseconds with fork/join, is the array sorted?: " + isSorted(fjSortedArray));
     }
 
-    private static void printArray(long[] array) {
-        System.out.print("[");
-        for (long element : array) {
-            System.out.print("" + element + ", ");
-        }
-        System.out.println("]");
+    public static void doMergeSort() {
+    	MergeSort mainTask=new MergeSort(myArray,0, myArray.length);
+    public static long[] doMergeSort(long[] array) {
+    	MergeSort mainTask=new MergeSort(array);
+    	ForkJoinPool pool = new ForkJoinPool();
+        pool.invoke(mainTask);
+        return mainTask.join();
     }
 
     private static boolean isSorted(long[] array) {
-        long last;
-        last = array[0];
-        for (int i = 1; i < array.length; i++) {
-            if (array[i] < last) {
-                return false;
-            }
-        }
-        return true;
-    }
+@@ -98,30 +102,33 @@ private static void print(long[] array) {
+}
 
-    private static long[] sortArrayInSingleProcess(long[] array) {
-        if (array.length == 0) {
-            return new long[] {};
-        }
-        if (array.length == 1) {
-            return new long[] {array[0]};
-        }
 
-        if (array.length == 2) {
-            if (array[0] >= array[1]) {
-                return new long[] {array[1], array[0]};
-            } else {
-                return new long[] {array[0], array[1]};
-            }
-        }
+class MergeSort extends RecursiveAction{
+class MergeSort extends RecursiveTask<long[]> {
 
-        var split = array.length / 2;
-        return combineArrays(sortArrayInSingleProcess(Arrays.copyOfRange(array, 0, split)), sortArrayInSingleProcess(Arrays.copyOfRange(array, split, array.length)));
-    }
+	long[] arr;
+	int start;
+	int end;
+
+	public MergeSort(long[] array,int start, int end) {
+		this.arr=array;
+		this.start=start;
+		this.end=end;
+	public MergeSort(long[] array) {
+		this.arr=array.clone();
+		this.start=0;
+		this.end=array.length;
+	}
+
+	@Override
+	protected void compute() {
+	protected long[] compute() {
+		if(end-start<=20) {
+			computeDirectly();
+		}else {
+			int middle = (end + start) / 2;
+
+			MergeSort subMerge1=new MergeSort(arr,start,middle);
+			MergeSort subMerge2=new MergeSort(arr,middle,start);
+			MergeSort subMerge1=new MergeSort(Arrays.copyOfRange(arr, start, middle));
+			MergeSort subMerge2=new MergeSort(Arrays.copyOfRange(arr, middle, end));
+
+			invokeAll(subMerge1,subMerge2);
+
+			this.arr = combineArrays(subMerge1.join(), subMerge2.join());
+		}
+		return this.arr;
+	}
+
+	protected void computeDirectly() {
+@@ -140,4 +147,30 @@ protected void computeDirectly() {
+            arr[j + 1] = key; 
+        } 
+	}
 
     private static long[] combineArrays(long[] a, long[] b) {
         int ia = 0;
