@@ -117,7 +117,7 @@ class MergeSort extends RecursiveTask<long[]> {
 	@Override
 	protected long[] compute() {
 		if(end-start<=20) {
-			computeDirectly();
+			return sortArrayInSingleProcess(this.arr);
 		}else {
 			int middle = (end + start) / 2;
 			
@@ -130,23 +130,26 @@ class MergeSort extends RecursiveTask<long[]> {
 		}
 		return this.arr;
 	}
-	
-	protected void computeDirectly() {
-		long n = arr.length; 
-        for (int i = 1; i < n; ++i) { 
-            long key = arr[i]; 
-            int j = i - 1; 
-  
-            /* Move elements of arr[0..i-1], that are 
-               greater than key, to one position ahead 
-               of their current position */
-            while (j >= 0 && arr[j] > key) { 
-                arr[j + 1] = arr[j]; 
-                j = j - 1; 
-            } 
-            arr[j + 1] = key; 
-        } 
-	}
+
+    private static long[] sortArrayInSingleProcess(long[] array) {
+        if (array.length == 0) {
+            return new long[] {};
+        }
+        if (array.length == 1) {
+            return new long[] {array[0]};
+        }
+
+        if (array.length == 2) {
+            if (array[0] >= array[1]) {
+                return new long[] {array[1], array[0]};
+            } else {
+                return new long[] {array[0], array[1]};
+            }
+        }
+
+        var split = array.length / 2;
+        return combineArrays(sortArrayInSingleProcess(Arrays.copyOfRange(array, 0, split)), sortArrayInSingleProcess(Arrays.copyOfRange(array, split, array.length)));
+    }
 
     private static long[] combineArrays(long[] a, long[] b) {
         int ia = 0;
